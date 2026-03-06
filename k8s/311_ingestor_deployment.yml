@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestor-311-deployment
+  labels:
+    app: incident-reporting
+    service: ingestor-311
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: ingestor-311
+  template:
+    metadata:
+      labels:
+        service: ingestor-311
+    spec:
+      containers:
+        - name: incident-reporting-311-ingestor
+          image: 311-ingestor:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 100m
+            limits:
+              memory: 128Mi
+              cpu: 200m
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/secret
+              readOnly: true
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - find /tmp/ingestor_live -mmin -45 | grep .
+            initialDelaySeconds: 10
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/ingestor_ready
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: app-secret
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestor-311-service
+  labels:
+    app: incident-reporting
+    service: ingestor-311
+spec:
+  type: ClusterIP
+  selector:
+    service: ingestor-311
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,8 @@
+pytest==8.1.1
+pytest-cov==5.0.0
+pytest-asyncio==0.23.6
+httpx>=0.28.1
+freezegun==1.4.0
+pydantic>=2.7.4,<3.0.0
+pytest-sugar==1.0.0
+langsmith>=0.1.147,<0.4.0

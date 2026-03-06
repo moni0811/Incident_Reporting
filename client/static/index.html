@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Command Center | AI Governance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .severity-CRITICAL { border-left: 6px solid #ef4444; }
+        .severity-MEDIUM { border-left: 6px solid #f59e0b; }
+        .severity-LOW { border-left: 6px solid #10b981; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans leading-normal tracking-normal">
+
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Incident Reporting</h2>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Username</label>
+                    <input type="text" id="username" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="Enter username">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password</label>
+                    <input type="password" id="password" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="••••••••">
+                </div>
+                
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]">
+                    Authorize Access
+                </button>
+            </div>
+            
+            <p id="login-error" class="text-rose-500 text-xs mt-6 hidden text-center font-bold">
+                ⚠️ Invalid credentials. Access denied.
+            </p>
+        </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <div class="w-full md:w-64 bg-slate-900 text-white p-6 flex-shrink-0">
+            <h2 class="text-xl font-bold mb-8 text-indigo-400">Incident AI</h2>
+            <nav class="space-y-2">
+                <button onclick="showView('main-dashboard-view')" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-300 transition">
+                    📂 <span class="font-medium">All Incidents</span>
+                </button>
+                <button onclick="showView('accuracy-view')" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-300 transition">
+                    📊 <span class="font-medium">Accuracy Report</span>
+                </button>
+                
+                <div class="pt-6 pb-2">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-widest">Governance Filters</p>
+                    <button onclick="filterBy('CRITICAL')" class="block w-full text-left px-3 py-2 text-sm hover:text-red-400 transition">🚨 Critical Alerts</button>
+                    <button onclick="filterBy('needs_review')" class="block w-full text-left px-3 py-2 text-sm hover:text-yellow-400 transition">⚖️ Needs Review</button>
+                </div>
+            </nav>
+        </div>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            
+            <div id="main-dashboard-view" class="animate-fade-in">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-extrabold text-slate-800">Incident Dashboard</h1>
+                    <div id="connection-status" class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">● Live Feed Active</div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <p class="text-slate-500 text-sm font-semibold uppercase tracking-wider">Total Volume</p>
+                        <p id="total" class="text-4xl font-black text-slate-900 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <p class="text-red-500 text-sm font-semibold uppercase tracking-wider">Critical Alerts</p>
+                        <p id="critical" class="text-4xl font-black text-red-600 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <p class="text-amber-500 text-sm font-semibold uppercase tracking-wider">Awaiting Review</p>
+                        <p id="needsReview" class="text-4xl font-black text-amber-500 mt-2">0</p>
+                    </div>
+                </div>
+
+                <div id="incidents" class="space-y-6">
+                    </div>
+            </div>
+
+            <div id="accuracy-view" class="hidden animate-fade-in">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-slate-800">AI Governance <span class="text-indigo-600">Performance</span></h1>
+                        <p class="text-slate-500 mt-1">Benchmarking AI accuracy against human ground truth.</p>
+                    </div>
+                    <button onclick="refreshAccuracyData()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-md transition">
+                        🔄 Refresh Metrics
+                    </button>
+                </div>
+                
+                <div id="governance-health-status" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div id="drift-card" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Model Drift Status</p>
+                            <h4 id="drift-status-text" class="text-lg font-bold text-slate-700">Checking...</h4>
+                        </div>
+                        <div id="drift-indicator" class="h-3 w-3 rounded-full bg-slate-300 animate-pulse"></div>
+                    </div>
+
+                    <div id="bias-card" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Geographic Bias Status</p>
+                            <h4 id="bias-status-text" class="text-lg font-bold text-slate-700">Checking...</h4>
+                        </div>
+                        <div id="bias-indicator" class="h-3 w-3 rounded-full bg-slate-300 animate-pulse"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Prompt Version</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Total Cases</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">AI Matches</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Accuracy Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accuracy-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let allData = [];
+
+        async function handleLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('username', user);
+            formData.append('password', pass);
+
+            const response = await fetch('/token', { method: 'POST', body: formData });
+            
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('jwt_token', data.access_token);
+                document.getElementById('login-overlay').classList.add('hidden');
+                loadIncidents(); // Start loading data now that we have a token
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        // --- DASHBOARD LOGIC ---
+        async function loadIncidents() {
+            try {
+                const token = localStorage.getItem('jwt_token');
+                const response = await fetch('/api/incidents', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                allData = await response.json();
+                renderData(allData);
+            } catch (e) {
+                console.error("Dashboard Fetch Error:", e);
+            }
+        }
+
+        function filterBy(type) {
+            if (type === 'ALL') renderData(allData);
+            else if (type === 'needs_review') renderData(allData.filter(i => i.needs_review));
+            else renderData(allData.filter(i => i.severity === type));
+        }
+
+        function renderData(data) {
+            document.getElementById('total').textContent = data.length;
+            document.getElementById('critical').textContent = data.filter(i => i.severity === 'CRITICAL').length;
+            document.getElementById('needsReview').textContent = data.filter(i => i.needs_review).length;
+            
+            document.getElementById('incidents').innerHTML = data.map(i => `
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden severity-${i.severity}">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">ID: ${i.incident_id}</span>
+                                <h3 class="text-lg font-bold text-slate-800 mt-1">${i.description.split('|')[0]}</h3>
+                                ${i.human_reviewed ? `<span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold ml-2">✅ HUMAN VERIFIED</span>` : ''}
+                            </div>
+                            <span class="px-3 py-1 rounded-md text-xs font-bold uppercase ${i.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}">
+                                ${i.severity}
+                            </span>
+                        </div>
+                        <div class="mt-2 mb-4 p-3 bg-slate-50 rounded-lg border-l-4 border-indigo-400">
+                            <p class="text-xs font-bold text-slate-500 uppercase mb-1">🤖 AI Reasoning</p>
+                            <p class="text-sm text-slate-700 italic">"${i.ai_reasoning || 'No reasoning provided.'}"</p>
+                        </div>
+                        ${i.needs_review ? `
+                            <div class="mt-4 p-4 bg-amber-50 rounded border border-amber-200">
+                                <p class="text-xs font-bold text-amber-800 mb-2">Reviewer Feedback Required:</p>
+                                <textarea id="note-${i.incident_id}" placeholder="Explain the AI error..." class="w-full text-xs p-2 border rounded mb-2"></textarea>
+                                <div class="flex gap-2">
+                                    <button onclick="approve('${i.incident_id}')" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs hover:bg-emerald-700">Confirm AI</button>
+                                    <select id="resort-${i.incident_id}" class="text-xs border rounded p-1">
+                                        <option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="CRITICAL">CRITICAL</option>
+                                    </select>
+                                    <button onclick="reclassify('${i.incident_id}')" class="bg-slate-800 text-white px-3 py-1 rounded text-xs hover:bg-slate-900">Override</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- NAVIGATION LOGIC ---
+        function showView(viewId) {
+            document.getElementById('main-dashboard-view').classList.add('hidden');
+            document.getElementById('accuracy-view').classList.add('hidden');
+            document.getElementById(viewId).classList.remove('hidden');
+
+            if (viewId === 'accuracy-view') {
+                refreshAccuracyData();
+                updateGovernanceAlerts();
+            }
+        }
+
+        // --- GOVERNANCE ACCURACY LOGIC ---
+        async function refreshAccuracyData() {
+            try {
+                const token = localStorage.getItem('jwt_token');
+                const res = await fetch('/api/incidents/performancestats', { 
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                const tbody = document.getElementById('accuracy-table-body');
+                tbody.innerHTML = ''; 
+
+                data.forEach(stat => {
+                    let scoreColor = 'text-rose-600';
+                    if (stat.accuracy_percentage >= 90) scoreColor = 'text-emerald-600';
+                    else if (stat.accuracy_percentage >= 75) scoreColor = 'text-amber-600';
+
+                    tbody.innerHTML += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                            <td class="px-6 py-4 font-mono font-bold text-indigo-600 text-sm">${stat.version}</td>
+                            <td class="px-6 py-4 text-center text-slate-700 font-medium">${stat.total_incidents}</td>
+                            <td class="px-6 py-4 text-center text-slate-700 font-medium">${stat.matched_count}</td>
+                            <td class="px-6 py-4 text-right font-black text-lg ${scoreColor}">${stat.accuracy_percentage}%</td>
+                        </tr>
+                    `;
+                });
+
+                updateGovernanceAlerts();
+
+            } catch (err) {
+                console.error("Refresh failed:", err);
+            }
+        }
+
+        // --- ACTION LOGIC ---
+        async function approve(id) {
+            const token = localStorage.getItem('jwt_token');
+            await fetch(`/api/incidents/${id}/approve`, { 
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            loadIncidents();
+        }
+
+        async function reclassify(id) {
+            const token = localStorage.getItem('jwt_token');
+            const newSev = document.getElementById(`resort-${id}`).value;
+            const note = document.getElementById(`note-${id}`).value;
+            await fetch(`/api/incidents/${id}/reclassify`, { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ severity: newSev, reviewer_notes: note })
+            });
+            loadIncidents();
+        }
+
+        async function updateGovernanceAlerts() {
+            const token = localStorage.getItem('jwt_token');
+            try {
+                // 1. Check for Drift
+                const driftRes = await fetch('/api/governance/drift_check', { 
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const driftData = await driftRes.json();
+                updateStatusCard('drift', driftData.drift_detected, driftData.status);
+
+                // 2. Check for Bias
+                const biasRes = await fetch('/api/governance/bias_check', { 
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const biasData = await biasRes.json();
+                updateStatusCard('bias', biasData.bias_detected, biasData.status, biasData);
+
+            } catch (err) {
+                console.error("Governance Alert Error:", err);
+            }
+        }
+
+        function updateStatusCard(type, isAlert, message, data) {
+            const textEl = document.getElementById(`${type}-status-text`);
+
+            textEl.innerHTML = message || "Loading...";
+
+            if(type== 'bias' && data && data.bias_gap_percentage !== undefined)  {
+                textEl.innerHTML = `${message} <br> <span style="font-size: 16px; font-weight: bold;">Gap:(${data.bias_gap_percentage})%</span>`;
+                console.table(data.neighborhoods_stats);
+            }
+            else {
+                textEl.textContent = message;
+            }
+            const indicatorEl = document.getElementById(`${type}-indicator`);
+            const cardEl = document.getElementById(`${type}-card`);
+
+            indicatorEl.classList.remove('animate-pulse', 'bg-slate-300');
+
+            if (isAlert) {
+                // Alert State (Red)
+                indicatorEl.classList.add('bg-rose-500');
+                cardEl.classList.add('border-rose-200', 'bg-rose-50');
+                textEl.classList.add('text-rose-700');
+            } else {
+                // Healthy State (Green)
+                indicatorEl.classList.add('bg-emerald-500');
+                cardEl.classList.add('border-emerald-200', 'bg-emerald-50');
+                textEl.classList.add('text-emerald-700');
+            }
+        }
+
+        loadIncidents();
+        setInterval(loadIncidents, 60000);
+    </script>
+</body>
+</html>

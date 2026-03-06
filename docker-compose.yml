@@ -1,0 +1,109 @@
+services: 
+    # traffic-generator:
+    #     build: ./traffic_generator
+    #     depends_on:
+    #         client-app:
+    #             condition: service_started
+    #     environment:
+    #         # IMPORTANT: This must match the port in your client-app
+    #         API_URL: "http://client-app:8000/report" 
+
+    triage-agent:
+        build: ./triage_agent
+        env_file:
+            - ./.env
+        ports:
+            - "8002:8000"
+            - "9092:9090"
+        depends_on:
+            postgres-db:
+                 condition: service_healthy
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    escalation-agent:
+        build: ./escalation_agent
+        ports:
+            - "8001:8000"
+            - "9091:9090"
+        depends_on:
+            triage-agent:
+                 condition: service_healthy
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            
+    client-app:
+        build: ./client
+        env_file:
+            - ./.env
+        ports:
+            - "8000:8000"
+        depends_on:
+            escalation-agent:
+                    condition: service_healthy
+        command: ["python", "app.py"]
+        
+    postgres-db:
+        image: postgres:15-alpine
+        environment:
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_NAME}
+        ports:
+            - "5432:5432"
+        volumes:
+            -  pgdata:/var/lib/postgresql/data
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: prometheus
+        ports:
+            - "9090:9090"
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+            - prometheus_data:/prometheus
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+        depends_on:
+            - triage-agent
+            - escalation-agent
+    
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        ports:
+            - "3000:3000"
+        volumes:
+            - grafana_data:/var/lib/grafana
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+        depends_on:
+            - prometheus
+
+    311-ingestor:
+        build: ./311_ingestor
+        environment:
+            CLIENT_URL: "http://client-app:8000/report"
+        env_file:
+            - ./.env
+        depends_on:
+            client-app:
+                    condition: service_started
+
+volumes:
+    pgdata:
+    grafana_data:
+    prometheus_data:

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'triage-agent'
+    static_configs:
+      - targets: ['triage-agent:9090']
+
+  - job_name: 'escalation-agent'
+    static_configs:
+      - targets: ['escalation-agent:9090']
