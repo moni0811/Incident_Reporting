@@ -97,10 +97,10 @@ jobs:
       
     - name: Pull images from Docker Hub
       run: |
-        docker pull ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
-        docker pull ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
-        docker pull ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
-        docker pull ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+        docker pull ${{ vars.DOCKER_USERNAME }}/ingestor-311-deployment:${{ github.sha }}
+        docker pull ${{ vars.DOCKER_USERNAME }}/client-api-deployment:${{ github.sha }}
+        docker pull ${{ vars.DOCKER_USERNAME }}/escalation-agent-deployment:${{ github.sha }}
+        docker pull ${{ vars.DOCKER_USERNAME }}/triage-agent-deployment:${{ github.sha }}
         
     - name: Load the images to KIND cluster
       run: |
