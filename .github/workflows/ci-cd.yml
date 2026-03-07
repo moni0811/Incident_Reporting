@@ -136,13 +136,24 @@ jobs:
         for f in k8s/*.yml; do
             envsubst < $f | kubectl apply -f -
         done
-      
+
+    - name: Debug pod status
+      run: |
+        echo "=== All Pods ==="
+        kubectl get pods -A
+        echo "=== Describe ingestor pod ==="
+        kubectl describe pod -l app=ingestor-311
+        echo "=== Ingestor logs ==="
+        kubectl logs -l app=ingestor-311 --tail=50 || true
+      if: always()    # runs even if previous step failed
+  
     - name: Wait for rollout
       run: |
-        kubectl rollout status deployment/311-ingestor --timeout=120s
-        kubectl rollout status deployment/client-api --timeout=120s
-        kubectl rollout status deployment/escalation-agent --timeout=120s
-        kubectl rollout status deployment/triage-agent --timeout=120s
+        kubectl rollout status statefulset/postgres-db --timeout=180s
+        kubectl rollout status deployment/ingestor-311-deployment --timeout=180s
+        kubectl rollout status deployment/client-api-deployment --timeout=180s
+        kubectl rollout status deployment/escalation-agent-deployment --timeout=180s
+        kubectl rollout status deployment/triage-agent-deployment --timeout=180s
     
     - name: Run smoke tests
       run: |
