@@ -139,10 +139,10 @@ jobs:
       
     - name: Wait for rollout
       run: |
-        kubectl rollout status deployment/311-ingestor --timeout=120s
-        kubectl rollout status deployment/client-api --timeout=120s
-        kubectl rollout status deployment/escalation-agent --timeout=120s
-        kubectl rollout status deployment/triage-agent --timeout=120s
+        kubectl rollout status deployment/ingestor-311-deployment --timeout=120s
+        kubectl rollout status deployment/client-api-deployment --timeout=120s
+        kubectl rollout status deployment/escalation-agent-deployment --timeout=120s
+        kubectl rollout status deployment/triage-agent-deployment --timeout=120s
     
     - name: Run smoke tests
       run: |
