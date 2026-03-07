@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: incident-reporting-client-api
-          image: client-api:latest
+          image: client-api:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

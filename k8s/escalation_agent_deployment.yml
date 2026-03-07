@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: incident-reporting-escalation-agent
-          image: escalation-agent:latest
+          image: escalation-agent:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

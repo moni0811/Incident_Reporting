@@ -1,4 +1,32 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: default
+data:
+  init.sql: |
+    \c incident_report
+    CREATE TABLE IF NOT EXISTS incidents (
+      id SERIAL PRIMARY KEY,
+      incident_id VARCHAR(50) UNIQUE,
+      description TEXT,
+      severity VARCHAR(20),
+      confidence FLOAT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      ai_reasoning TEXT,
+      ai_severity TEXT,
+      prompt_version TEXT,
+      deadline TIMESTAMP,
+      policies_applied TEXT,
+      address TEXT,
+      zip_code INTEGER,
+      data_source VARCHAR(50),
+      transformation_log TEXT
+    );
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO db_admin;
+
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
@@ -44,22 +72,22 @@ spec:
             - containerPort: 5432
               protocol: TCP
           env:
-            - name: POSTGRES_USER          
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: app-secret
                   key: DB_USER
-            - name: POSTGRES_PASSWORD      
+            - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secret
                   key: DB_PASSWORD
-            - name: POSTGRES_DB            
+            - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   name: app-secret
                   key: DB_NAME
-            - name: PGDATA                 
+            - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: postgres-storage
@@ -67,6 +95,8 @@ spec:
             - name: postgres-secret
               mountPath: /app/secret
               readOnly: true
+            - name: postgres-init
+              mountPath: /docker-entrypoint-initdb.d/
           resources:
             requests:
               memory: "256Mi"
@@ -103,6 +133,9 @@ spec:
           secret:
             secretName: app-secret
             defaultMode: 420
+        - name: postgres-init
+          configMap:
+            name: postgres-init-sql
 
 ---
 apiVersion: v1
