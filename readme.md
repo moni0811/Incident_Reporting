@@ -386,3 +386,12 @@ The PolicyEngine is the safety-critical layer of this system — it enforces rul
 ## Tech Stack
 
 `Python 3.11` · `FastAPI` · `FastMCP` · `OpenAI GPT-4o` · `PostgreSQL` · `psycopg2` · `Docker` · `Kubernetes` · `AWS S3` · `Prometheus` · `Tailwind CSS` · `JWT Auth`
+
+---
+
+## What's Next
+
+CI/CD pipeline with GitHub Actions, migration to AWS EKS, IRSA for secure AWS access, Horizontal Pod Autoscaling, Grafana observability dashboards, RBAC and NetworkPolicies for cluster security, OpenTelemetry distributed tracing, and an AI-Ops module for automated root cause analysis.
+
+All updates will be tagged as releases in this repository.
+```
