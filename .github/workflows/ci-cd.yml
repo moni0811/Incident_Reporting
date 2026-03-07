@@ -104,10 +104,10 @@ jobs:
         
     - name: Load the images to KIND cluster
       run: |
-        kind load docker-image ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
-        kind load docker-image ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
-        kind load docker-image ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
-        kind load docker-image ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+        kind load docker-image ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }} --name chart-testing
+        kind load docker-image ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }} --name chart-testing
+        kind load docker-image ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }} --name chart-testing
+        kind load docker-image ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }} --name chart-testing
     
     - name: Create or Update Kubernetes Secrets
       run: |
