@@ -70,7 +70,7 @@ async def readiness():
         conn.close()
         return {"status":"ready"}
     except Exception as e:
-        raise HTTPException(status_code=503, details="DB Unreachable")
+        raise HTTPException(status_code=503, detail="DB Unreachable")
 
 
 

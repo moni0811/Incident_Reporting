@@ -162,12 +162,19 @@ jobs:
       run: |
         echo "=== All Pods ==="
         kubectl get pods -A
-        echo "=== Describe client-api ==="
-        kubectl describe deployment client-api-deployment
-        echo "=== client-api pod logs ==="
+        echo "=== client-api logs ==="
         kubectl logs deployment/client-api-deployment --tail=80 || true
-        echo "=== client-api previous logs (if crashed) ==="
         kubectl logs deployment/client-api-deployment --previous --tail=80 || true
+        echo "=== escalation-agent logs ==="
+        kubectl logs deployment/escalation-agent-deployment --tail=80 || true
+        kubectl logs deployment/escalation-agent-deployment --previous --tail=80 || true
+        echo "=== triage-agent logs ==="
+        kubectl logs deployment/triage-agent-deployment --tail=80 || true        
+        kubectl logs deployment/triage-agent-deployment --previous --tail=80 || true  
+        echo "=== ingestor-311 logs ==="
+        kubectl logs deployment/ingestor-311-deployment --tail=80 || true
+        echo "=== postgres logs ==="
+        kubectl logs statefulset/postgres-db --tail=50 || true
     
     - name: Run smoke tests
       run: |
