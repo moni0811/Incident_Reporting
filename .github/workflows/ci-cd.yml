@@ -121,6 +121,7 @@ jobs:
           --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
           --from-literal=AWS_REGION="${{ secrets.AWS_REGION }}" \
           --from-literal=ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
+          --from-literal=SECRET_KEY="${{ secrets.SECRET_KEY }}" \
           --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Create or Update Kubernetes ConfigMap
