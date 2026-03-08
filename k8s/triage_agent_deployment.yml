@@ -6,7 +6,7 @@ metadata:
     app: incident-reporting
     service: triage-agent
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       service: triage-agent
@@ -60,10 +60,6 @@ metadata:
     service: triage-agent
 spec:
   type: ClusterIP
-  sessionAffinity: ClientIP # Enable sticky sessions
-  sessionAffinityConfig:
-    clientIP:
-      timeoutSeconds: 10800 # 3 hours timeout for sticky sessions
   selector:
     service: triage-agent
   ports:

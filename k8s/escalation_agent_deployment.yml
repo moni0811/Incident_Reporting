@@ -6,7 +6,7 @@ metadata:
     app: incident-reporting
     service: escalation-agent
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       service: escalation-agent
@@ -61,10 +61,6 @@ metadata:
     service: escalation-agent
 spec:
   type: ClusterIP
-  sessionAffinity: ClientIP # Enable sticky sessions
-  sessionAffinityConfig:
-    clientIP:
-      timeoutSeconds: 10800
   selector:
     service: escalation-agent
   ports:
