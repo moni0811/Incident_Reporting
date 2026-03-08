@@ -138,6 +138,24 @@ jobs:
           [ -f "$f" ] && envsubst '${IMAGE_TAG} ${DOCKER_USERNAME}' < $f | kubectl apply -f -
         done
 
+    - name: Debug pod status
+      run: |
+        echo "=== All Pods ==="
+        kubectl get pods -A
+        echo "=== Describe ingestor pod ==="
+        kubectl describe pod -l app=ingestor-311
+        echo "=== Ingestor logs ==="
+        kubectl logs -l app=ingestor-311 --tail=50 || true
+      if: always()    # runs even if previous step failed
+      
+    - name: Wait for rollout
+      run: |
+        kubectl rollout status statefulset/postgres-db --timeout=180s
+        kubectl rollout status deployment/ingestor-311-deployment --timeout=180s
+        kubectl rollout status deployment/client-api-deployment --timeout=180s
+        kubectl rollout status deployment/escalation-agent-deployment --timeout=180s
+        kubectl rollout status deployment/triage-agent-deployment --timeout=180s
+
     - name: Debug pod status after rollout
       if: always()
       run: |
@@ -149,14 +167,6 @@ jobs:
         kubectl logs deployment/client-api-deployment --tail=80 || true
         echo "=== client-api previous logs (if crashed) ==="
         kubectl logs deployment/client-api-deployment --previous --tail=80 || true
-      
-    - name: Wait for rollout
-      run: |
-        kubectl rollout status statefulset/postgres-db --timeout=180s
-        kubectl rollout status deployment/ingestor-311-deployment --timeout=180s
-        kubectl rollout status deployment/client-api-deployment --timeout=180s
-        kubectl rollout status deployment/escalation-agent-deployment --timeout=180s
-        kubectl rollout status deployment/triage-agent-deployment --timeout=180s
     
     - name: Run smoke tests
       run: |
