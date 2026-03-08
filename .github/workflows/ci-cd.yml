@@ -173,7 +173,7 @@ jobs:
       run: |
          kubectl port-forward svc/client-api-service 8000:80 &
          sleep 30
-         curl -f http://localhost:8000/health
+         curl -f http://localhost:8000/health/live
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -187,6 +187,7 @@ jobs:
        
     - name: integration test with pytest
       run: |
+        curl -f http://localhost:8000/health/ready
         pytest tests/test_api_contract.py -v
         pytest tests/test_integration_e2e.py -v
         pytest tests/test_performance_latency.py -v
