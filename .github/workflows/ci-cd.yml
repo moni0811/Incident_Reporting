@@ -138,15 +138,17 @@ jobs:
           [ -f "$f" ] && envsubst '${IMAGE_TAG} ${DOCKER_USERNAME}' < $f | kubectl apply -f -
         done
 
-    - name: Debug pod status
+    - name: Debug pod status after rollout
+      if: always()
       run: |
         echo "=== All Pods ==="
         kubectl get pods -A
-        echo "=== Describe ingestor pod ==="
-        kubectl describe pod -l app=ingestor-311
-        echo "=== Ingestor logs ==="
-        kubectl logs -l app=ingestor-311 --tail=50 || true
-      if: always()    # runs even if previous step failed
+        echo "=== Describe client-api ==="
+        kubectl describe deployment client-api-deployment
+        echo "=== client-api pod logs ==="
+        kubectl logs deployment/client-api-deployment --tail=80 || true
+        echo "=== client-api previous logs (if crashed) ==="
+        kubectl logs deployment/client-api-deployment --previous --tail=80 || true
       
     - name: Wait for rollout
       run: |
