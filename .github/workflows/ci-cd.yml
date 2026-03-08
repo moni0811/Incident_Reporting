@@ -171,8 +171,8 @@ jobs:
     
     - name: Run smoke tests
       run: |
-         kubectl port-forward svc/client-api-service 8000:80
-         sleep 90
+         kubectl port-forward svc/client-api-service 8000:80 &
+         sleep 30
          curl -f http://localhost:8000/health
 
     - name: Set up Python
