@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: incident-reporting-triage-agent
-          image: triage-agent:${IMAGE_TAG}
+          image: ${DOCKER_USERNAME}/triage-agent:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

@@ -133,8 +133,9 @@ jobs:
     - name: Deploy to cluster
       run: |
         export IMAGE_TAG=${{ github.sha }}
-        for f in k8s/*.yml; do
-            envsubst < $f | kubectl apply -f -
+        export DOCKER_USERNAME=${{ vars.DOCKER_USERNAME }}
+        for f in k8s/*.yml k8s/*.yaml; do
+          [ -f "$f" ] && envsubst '${IMAGE_TAG} ${DOCKER_USERNAME}' < $f | kubectl apply -f -
         done
       
     - name: Wait for rollout
