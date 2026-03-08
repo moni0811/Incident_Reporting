@@ -155,6 +155,16 @@ jobs:
         kubectl rollout status deployment/client-api-deployment --timeout=180s
         kubectl rollout status deployment/escalation-agent-deployment --timeout=180s
         kubectl rollout status deployment/triage-agent-deployment --timeout=180s
+
+    - name: Debug pod status after rollout       
+      if: always()
+      run: |
+        echo "=== All Pods ==="
+        kubectl get pods -A
+        echo "=== Describe client-api pod ==="
+        kubectl describe pod -l app=client-api
+        echo "=== client-api logs ==="
+        kubectl logs -l app=client-api --tail=50 || true
     
     - name: Run smoke tests
       run: |
