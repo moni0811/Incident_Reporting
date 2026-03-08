@@ -176,6 +176,20 @@ jobs:
         echo "=== postgres logs ==="
         kubectl logs statefulset/postgres-db --tail=50 || true
     
+    - name: Debug service connectivity
+      if: always()
+      run: |
+        echo "=== Services ==="
+        kubectl get svc
+        echo "=== Test escalation agent reachability ==="
+        kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
+          curl -f http://escalation-agent-service/health || true
+        echo "=== client-api logs ==="
+        kubectl logs deployment/client-api-deployment --tail=80 || true
+        echo "=== Test triage agent reachability ==="
+        kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
+          curl -f http://triage-agent-service/health || true
+
     - name: Run smoke tests
       run: |
          kubectl port-forward svc/client-api-service 8000:80 &
@@ -200,3 +214,13 @@ jobs:
         pytest tests/test_performance_latency.py -v
         pytest tests/test_pii_logs.py -v
         pytest tests/test_security_tokens.py -v
+
+    - name: Debug app logs after integration tests
+      if: always()
+      run: |
+        echo "=== client-api logs during tests ==="
+        kubectl logs deployment/client-api-deployment --tail=100 || true
+        echo "=== escalation-agent logs during tests ==="
+        kubectl logs deployment/escalation-agent-deployment --tail=100 || true
+        echo "=== triage-agent logs during tests ==="
+        kubectl logs deployment/triage-agent-deployment --tail=100 || true
