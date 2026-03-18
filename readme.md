@@ -1,14 +1,26 @@
 # AI-Powered Incident Reporting System
 
-An end-to-end, production-grade system that ingests real SF 311 public complaints, classifies them with GPT-4o, and surfaces everything through a **human-in-the-loop governance dashboard** — built with enterprise-grade AI governance and security baked in from day one.
+An end-to-end, production-grade system that ingests real SF 311 public complaints, classifies them with GPT-4o, and surfaces everything through a **human-in-the-loop governance dashboard** — built with enterprise-grade AI governance, security, and observability baked in from day one.
+
+![Python](https://img.shields.io/badge/Python-3.11-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green) ![Kubernetes](https://img.shields.io/badge/Kubernetes-live-blue) ![GPT-4o](https://img.shields.io/badge/GPT--4o-OpenAI-orange) ![Prometheus](https://img.shields.io/badge/Prometheus-metrics-red) ![Grafana](https://img.shields.io/badge/Grafana-dashboards-yellow) ![Tests](https://img.shields.io/badge/Tests-41%20passing-brightgreen)
+
+---
+
+## Why This Project Exists
+
+Most GenAI projects don't fail during development. They fail after deployment — not because of the model, but because nobody knows what's happening in production.
+
+This system is built to answer the questions that matter:
+- Why did cost suddenly spike?
+- Is latency coming from the model or the API?
+- Are we silently failing and retrying?
+- Is the model's behavior drifting over time?
 
 ---
 
 ## AI Governance Framework
 
 Most AI projects skip this entirely. This system treats governance as a **first-class feature**, not an afterthought.
-
-### Governance Pillars
 
 | Pillar | Component | What It Proves |
 |--------|-----------|----------------|
@@ -36,11 +48,11 @@ AI Response
 │  Policy A: Safety Keyword Override          │
 │  → "fire/gas/explosion/flood/..." → CRITICAL│
 │                                             │
-│  Policy B: SLA Assignment                  │
-│  → CRITICAL=2h, HIGH=4h, MED=24h, LOW=3d  │
+│  Policy B: SLA Assignment                   │
+│  → CRITICAL=2h, HIGH=4h, MED=24h, LOW=3d   │
 │                                             │
-│  Policy C: Confidence Guardrail            │
-│  → confidence < 0.8 → flag for review      │
+│  Policy C: Confidence Guardrail             │
+│  → confidence < 0.8 → flag for review       │
 └─────────────────────────────────────────────┘
      │
      ▼
@@ -66,6 +78,7 @@ This is the core insight: **probabilistic AI + deterministic policy = safe produ
 ### Audit Trail Example
 
 Every incident carries a full `transformation_log`:
+
 ```
 [2024-01-15 10:23:01] Initial Severity classified as MEDIUM by AI Agent
 [2024-01-15 10:23:01] Policy Override to CRITICAL (Note: Safety Keyword Override)
@@ -73,6 +86,45 @@ Every incident carries a full `transformation_log`:
 ```
 
 ---
+
+## LLM Observability & Monitoring
+
+Built using Prometheus for metrics collection and Grafana for visualization, integrated with the live multi-agent system.
+
+### Dashboards
+
+![LLM Observability Dashboard](screenshots/dashboard/grafana_observability.png)
+
+**1. Cost Intelligence**
+- Cost per request, per second, projected daily cost
+- Token usage patterns over time
+
+**2. Latency & SLOs**
+- HTTP vs LLM latency (p95)
+- Availability tracking — currently at 100%
+
+**3. Reliability Signals**
+- Error rates and retry behavior *(in progress)*
+
+**4. Anomaly Detection**
+- Traffic drops, token spikes, latency anomalies
+
+**5. Model Drift Monitoring**
+- Severity distribution over time
+- Entropy-based drift indicator (current: 0.639)
+
+### Prometheus Metrics
+
+Each agent exposes metrics on port `9090`:
+
+| Metric | Agent | Type |
+|--------|-------|------|
+| `triage_requests_total` | Triage | Counter |
+| `triage_classification_seconds` | Triage | Histogram |
+| `triage_severity_total{severity}` | Triage | Counter |
+| `escalation_requests_total` | Escalation | Counter |
+| `decide_escalation_seconds` | Escalation | Histogram |
+| `escalation_severity_total{severity}` | Escalation | Counter |
 
 ---
 
@@ -104,17 +156,10 @@ SF 311 Public API
            │
            ▼
      PostgreSQL DB
+           │
+           ▼
+     Prometheus → Grafana
 ```
-
-**Key features showcased:**
-- Multi-agent MCP (Model Context Protocol) communication over SSE
-- GPT-4o incident severity classification (LOW / MEDIUM / HIGH / CRITICAL)
-- Deterministic `PolicyEngine` overrides probabilistic AI (safety keywords, SLA, confidence guardrails)
-- PII redaction before data reaches the LLM
-- Human-in-the-loop review: approve, reject, or override AI decisions from the dashboard
-- AI governance metrics: prompt versioning, drift detection, geographic bias check
-- Kubernetes-native: health/readiness probes, secrets, configmaps, resource limits, sticky sessions
-- Prometheus metrics on every agent
 
 ---
 
@@ -198,23 +243,17 @@ incident_reporting/
 ### Step 1 — Clone the repo
 
 ```bash
-git clone https://github.com/<your-username>/incident_reporting.git
-cd incident_reporting
+git clone https://github.com/moni0811/Incident_Reporting.git
+cd Incident_Reporting
 ```
 
 ### Step 2 — Set up the database
-
-Connect to your PostgreSQL instance and run:
 
 ```bash
 psql -h <your-db-host> -U postgres -f scripts/init_db.sql
 ```
 
-> Update the `db_admin` password in `init_db.sql` before running.
-
-### Step 3 — Create Kubernetes secrets and config
-
-Copy the example file and fill in your actual values:
+### Step 3 — Create Kubernetes secrets
 
 ```bash
 cp k8s/create_secrets.sh.example k8s/create_secrets.sh
@@ -222,20 +261,12 @@ chmod +x k8s/create_secrets.sh
 ./k8s/create_secrets.sh
 ```
 
-This creates:
-- `app-secret` — DB credentials, OpenAI key, AWS keys, JWT secret, admin password
-- `app-env-variables` — service URLs (escalation and triage agent internal URLs)
-
 ### Step 4 — Build Docker images
 
 ```bash
-# Start Minikube (skip if using an existing cluster)
 minikube start
-
-# Point Docker to Minikube's daemon so images are available in-cluster
 eval $(minikube docker-env)
 
-# Build all images
 docker build -t 311-ingestor:latest ./311_ingestor
 docker build -t client-api:latest ./client
 docker build -t triage-agent:latest ./triage_agent
@@ -250,13 +281,8 @@ kubectl apply -f k8s/triage_agent_deployment.yml
 kubectl apply -f k8s/escalation_agent_deployment.yml
 kubectl apply -f k8s/client_api_deployment.yml
 kubectl apply -f k8s/311_ingestor_deployment.yml
-```
 
-Verify all pods are running:
-
-```bash
-kubectl get pods
-# All pods should show STATUS: Running
+kubectl get pods  # All pods should show STATUS: Running
 ```
 
 ### Step 6 — Access the dashboard
@@ -265,133 +291,66 @@ kubectl get pods
 kubectl port-forward service/client-api-service 8000:80
 ```
 
-Open `http://localhost:8000` in your browser.
-
-**Default login:**
-- Username: `admin`
-- Password: whatever you set as `ADMIN_PASSWORD` in the secrets
+Open `http://localhost:8000` — default login is `admin` / your `ADMIN_PASSWORD` secret.
 
 ---
 
 ## Dashboard Walkthrough
 
 | View | What it shows |
-|------|--------------|
+|------|---------------|
 | **All Incidents** | Live feed of classified incidents with AI severity + reasoning |
 | **Critical Alerts** | Filter to CRITICAL-only incidents |
-| **Needs Review** | Incidents the system flagged for human verification |
+| **Needs Review** | Incidents flagged for human verification |
 | **Accuracy Report** | AI accuracy per prompt version vs human ground truth |
 | **Drift Check** | Detects if model accuracy is degrading over time |
 | **Bias Check** | Flags geographic (zip code) accuracy disparities |
 
-**Human-in-the-loop actions available per incident:**
-- ✅ Confirm AI decision
-- ❌ Reject (flags for re-review)
-- 🔄 Override severity (LOW / MEDIUM / CRITICAL) with notes — logged in `transformation_log`
-
----
-
-## PolicyEngine Rules
-
-The `PolicyEngine` in `triage_agent/policy_engine.py` enforces three hard rules **after** the AI responds:
-
-| Policy | Trigger | Action |
-|--------|---------|--------|
-| Safety Keyword Override | Description contains: fire, gas, smoke, explosion, collapsed, flood, earthquake, emergency | Force CRITICAL + flag for human review |
-| SLA Assignment | Every incident | Assigns resolution deadline: CRITICAL=2h, HIGH=4h, MEDIUM=24h, LOW=3d |
-| Low Confidence Guardrail | AI confidence < 0.8 | Flag for human review regardless of severity |
-
----
-
-## Prometheus Metrics
-
-Each agent exposes metrics on port `9090`:
-
-| Metric | Agent | Type |
-|--------|-------|------|
-| `triage_requests_total` | Triage | Counter |
-| `triage_classification_seconds` | Triage | Histogram |
-| `triage_severity_total{severity}` | Triage | Counter |
-| `escalation_requests_total` | Escalation | Counter |
-| `decide_escalation_seconds` | Escalation | Histogram |
-| `escalation_severity_total{severity}` | Escalation | Counter |
-
----
-
-## Troubleshooting
-
-**Pods crash on startup:**
-```bash
-kubectl logs <pod-name>
-# Most common cause: secrets not created. Re-run create_secrets.sh
-```
-
-**Dashboard returns 503:**
-```bash
-# DB not reachable — check DB_HOST in your secret matches actual host
-kubectl describe secret app-secret
-```
-
-**Images not building with `eval $(minikube docker-env)`:**
-```bash
-# Confirm you're in the right shell session
-minikube docker-env
-# Re-run eval $(...) in your current terminal
-```
-
-**Port-forward drops:**
-```bash
-# Re-run port-forward — it's a foreground process
-kubectl port-forward service/client-api-service 8000:80
-```
+Human-in-the-loop actions per incident: ✅ Confirm · ❌ Reject · 🔄 Override severity with notes
 
 ---
 
 ## Running Tests
 
 ```bash
-# Install test dependencies
 pip install -r requirements-test.txt
-
-# Run all tests
 pytest tests/ -v
-
-# Run a specific test file
-pytest tests/test_policy_engine.py -v
-
-# Run with coverage report
 pytest tests/ --cov=triage_agent --cov-report=term-missing
 ```
 
 ### Test Suite
 
 | # | Test File | Tests | What It Verifies |
-|---|-----------|-------|-----------------|
-| 1 | `test_policy_engine.py` | 32 | All 3 PolicyEngine rules: safety keyword override, SLA deadlines, confidence guardrails, edge cases and combined scenarios |
-| 2 | `test_integration_e2e.py` | 2 | Full pipeline end-to-end: PII redaction, policy override to CRITICAL, JWT security gate — against live Kubernetes cluster |
-| 3 | `test_performance_latency.py` | 2 | Report endpoint response time and client timeout handling against live system |
-| 4 | `test_security_tokens.py` | 2 | Expired tokens and malformed tokens both correctly rejected with 401 — JWT gate is locked |
-| 5 | `test_pii_logs.py` | 1 | PII (emails, phone numbers) never appears in logs or reaches the LLM |
-| 6 | `test_policy_idempotence.py` | 1 | Same input always produces same output — PolicyEngine is stateless and deterministic |
-| 7 | `test_api_contract.py` | 1 | Incident API returns correct schema with all required fields and correct data types |
+|---|-----------|-------|------------------|
+| 1 | `test_policy_engine.py` | 32 | All 3 PolicyEngine rules: safety keywords, SLA deadlines, confidence guardrails |
+| 2 | `test_integration_e2e.py` | 2 | Full pipeline end-to-end against live Kubernetes cluster |
+| 3 | `test_performance_latency.py` | 2 | Response time and timeout handling |
+| 4 | `test_security_tokens.py` | 2 | Expired and malformed tokens rejected with 401 |
+| 5 | `test_pii_logs.py` | 1 | PII never appears in logs or reaches the LLM |
+| 6 | `test_policy_idempotence.py` | 1 | Same input always produces same output |
+| 7 | `test_api_contract.py` | 1 | Correct schema, required fields, data types |
 
-**Total: 41 tests across 7 files covering unit, integration, performance, security, and contract layers.**
-
-### Why these tests matter
-
-The PolicyEngine is the safety-critical layer of this system — it enforces rules that override AI decisions in life-safety scenarios. The integration tests verify the full pipeline works end to end against a live Kubernetes cluster, not mocks. The PII test proves sensitive data never reaches the LLM. Together these tests cover every layer of the system from individual rules to full pipeline behaviour.
+**Total: 41 tests — unit, integration, performance, security, and contract layers. All passing against a live Kubernetes cluster.**
 
 ---
 
 ## Tech Stack
 
-`Python 3.11` · `FastAPI` · `FastMCP` · `OpenAI GPT-4o` · `PostgreSQL` · `psycopg2` · `Docker` · `Kubernetes` · `AWS S3` · `Prometheus` · `Tailwind CSS` · `JWT Auth`
+`Python 3.11` · `FastAPI` · `FastMCP` · `OpenAI GPT-4o` · `PostgreSQL` · `Docker` · `Kubernetes` · `Prometheus` · `Grafana` · `AWS S3` · `Tailwind CSS` · `JWT Auth`
+
+---
+
+## Publications / Innovation
+
+- **Invention Disclosure:** Deterministic Text-to-SQL Architecture for Enterprise Databases
 
 ---
 
 ## What's Next
 
-CI/CD pipeline with GitHub Actions, migration to AWS EKS, IRSA for secure AWS access, Horizontal Pod Autoscaling, Grafana observability dashboards, RBAC and NetworkPolicies for cluster security, OpenTelemetry distributed tracing, and an AI-Ops module for automated root cause analysis.
-
-All updates will be tagged as releases in this repository.
-```
+- Migration to AWS EKS with IRSA for secure AWS access
+- Horizontal Pod Autoscaling
+- RBAC and NetworkPolicies for cluster security
+- OpenTelemetry distributed tracing
+- AI-Ops module for automated root cause analysis
+- Accuracy evaluation metrics and human feedback loop integration
