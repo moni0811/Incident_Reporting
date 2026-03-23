@@ -88,13 +88,4 @@ spec:
             severity: critical
           annotations:
             summary: "LLM high error rate"
-            description: "Error rate of LLM is {{ $value }}%, exceeding the 10% limit. "
-
-        - alert: LowLLMConfidence
-          expr: rate(llm_low_confidence_count[5m]) / rate(llm_call_count_total[5m]) > 0.2
-          for: 2m
-          labels:
-            severity: warning
-          annotations:
-            summary: "Low LLM Confidence"
-            description: "Confident rate of LLM is low  "
+            description: "Error rate of LLM is {{ $value }}%, exceeding the 10% limit."
