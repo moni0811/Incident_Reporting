@@ -66,14 +66,14 @@ jobs:
     - name: Build and Push the escalation-agent Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./escalation_agent
+        context: .
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
 
     - name: Build and Push the triage-agent Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./triage_agent
+        context: .
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
