@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: triage-agent-metrics
+  labels:
+    service: triage-agent
+spec:
+  selector:
+    service: triage-agent
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: 9090
