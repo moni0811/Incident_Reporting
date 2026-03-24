@@ -74,7 +74,8 @@ jobs:
     - name: Build and Push the triage-agent Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./triage_agent
+        context: .
+        file: ./triage_agent/Dockerfile
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
