@@ -67,6 +67,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
+        file: ./escalation_agent/Dockerfile
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
 
