@@ -1,0 +1,91 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: incident-reporting-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus-stack  # must match your kube-prometheus-stack release name
+spec:
+  groups:
+    - name: incident-reporting
+      rules:
+        - alert: HighLLMLatency
+          expr: histogram_quantile(0.95, rate(llm_call_duration_seconds_bucket[5m])) > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "LLM  Latency is too high"
+            description: "P95 latency is {{ $value }}s, which is above the 5s threshold for 2 minutes."
+
+        - alert: LowClassificationConfidence
+          expr: classification_confidence < 0.8
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Classification confidence dropped below 0.8"
+            description: "AI model classification confidence has dropped below acceptable threshold. Current confidence: {{ $value }}."
+
+        - alert: HighErrorRate
+          expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])))  > 0.05
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High Error Rate Detected"
+            description: "Error rate is {{ $value }}%, exceeding the 5% limit."
+
+        - alert: PodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod is crash looping"
+            description: "Pod {{ $labels.pod }} has restarted more than 3 times in the last 15 minutes."
+          
+        - alert: HighCPUUsage
+          expr: rate(process_cpu_seconds_total[5m]) > 0.8
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "CPU Usage is high"
+            description: "CPU usage is above than 80% for more than 2 minutes"
+
+        - alert: HighMemoryUsage
+          expr: process_resident_memory_bytes > 500000000
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Memory usage above 500MB on {{ $labels.instance }}."
+        
+        - alert: SLOBreach
+          expr: 1 - rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) < 0.999
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "SLO Breach"
+            description: "Availability is less than 99.9% for more than 5 mins"
+
+        - alert: HighTokenUsage
+          expr: rate(llm_call_count_total[5m]) > 10
+          for: 3m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High token usage"
+            description: "Token usage is high for more than 3 mins."
+        
+        - alert: LLMHighErrorRate
+          expr: rate(llm_call_count_total{status="error"}[5m]) / rate(llm_call_count_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "LLM high error rate"
+            description: "Error rate of LLM is {{ $value }}%, exceeding the 10% limit."

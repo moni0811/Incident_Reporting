@@ -66,14 +66,16 @@ jobs:
     - name: Build and Push the escalation-agent Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./escalation_agent
+        context: .
+        file: ./escalation_agent/Dockerfile
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
 
     - name: Build and Push the triage-agent Docker image
       uses: docker/build-push-action@v6
       with:
-        context: ./triage_agent
+        context: .
+        file: ./triage_agent/Dockerfile
         push: true
         tags: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
@@ -130,7 +132,11 @@ jobs:
           --from-literal=ESCALATION_AGENT_URL="${{ vars.ESCALATION_AGENT_URL }}" \
           --from-literal=TRIAGE_AGENT_URL="${{ vars.TRIAGE_AGENT_URL }}" \
           --dry-run=client -o yaml | kubectl apply -f -
-          
+
+    - name: Install Prometheus ServiceMonitor CRD
+      run: |
+        kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+    
     - name: Deploy to cluster
       run: |
         export IMAGE_TAG=${{ github.sha }}

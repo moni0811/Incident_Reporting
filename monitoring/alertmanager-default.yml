@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: slack-alerts-default
+  namespace: default
+  labels:
+    alertmanagerConfig: slack-alerts
+spec:
+  route:
+    receiver: "slack-alerts"
+    groupBy: ['alertname', 'severity']
+    groupWait: 10s
+    groupInterval: 1m
+    repeatInterval: 5m
+    matchers:
+      - name: alertname
+        value: Watchdog
+        matchType: "!="
+    routes:
+      - receiver: "slack-critical"
+        matchers:
+          - name: severity
+            value: critical
+            matchType: "="
+        continue: false
+  
+  receivers:
+    - name: 'slack-alerts'
+      slackConfigs:
+        - apiURL: 
+            name: slack-api-url
+            key: url
+          channel: '#incident-reporting-system-alerts'
+          sendResolved: true
+          title: ':warning: [DEFAULT] {{ .GroupLabels.alertname }}'
+          text: |-
+            {{ range .Alerts }}
+            *Alert:* {{ .Labels.alertname }}
+            *Severity:* {{ .Labels.severity }}
+            *Summary:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            {{ if .Labels.instance }}*Instance:* {{ .Labels.instance }}{{ end }}
+            {{ if .Labels.pod }}*Pod:* {{ .Labels.pod }}{{ end }}
+            {{ if .Labels.namespace }}*Namespace:* {{ .Labels.namespace }}{{ end }}
+            {{ end }}
+
+    - name: 'slack-critical'
+      slackConfigs:
+        - apiURL: 
+            name: slack-api-url
+            key: url
+          channel: '#incident-reporting-system-alerts'
+          sendResolved: true
+          title: ':rotating_light: CRITICAL [DEFAULT] {{ .GroupLabels.alertname }}'
+          text: |-
+            {{ range .Alerts }}
+            *Alert:* {{ .Labels.alertname }}
+            *Severity:* {{ .Labels.severity }}
+            *Summary:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            {{ if .Labels.instance }}*Instance:* {{ .Labels.instance }}{{ end }}
+            {{ if .Labels.pod }}*Pod:* {{ .Labels.pod }}{{ end }}
+            {{ if .Labels.namespace }}*Namespace:* {{ .Labels.namespace }}{{ end }}
+            {{ end }}
