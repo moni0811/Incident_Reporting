@@ -1,6 +1,6 @@
 # AI-Powered Incident Reporting System
 
-An end-to-end, production-grade system that ingests real SF 311 public complaints, classifies them with GPT-4o, and surfaces everything through a **human-in-the-loop governance dashboard** — built with enterprise-grade AI governance, security, and observability baked in from day one.
+An end-to-end, production-grade system that ingests real SF 311 public complaints, classifies them with GPT-4o, and surfaces everything through a **human-in-the-loop governance dashboard** — built with enterprise-grade AI governance, security, observability, and alerting baked in from day one.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green) ![Kubernetes](https://img.shields.io/badge/Kubernetes-live-blue) ![GPT-4o](https://img.shields.io/badge/GPT--4o-OpenAI-orange) ![Prometheus](https://img.shields.io/badge/Prometheus-metrics-red) ![Grafana](https://img.shields.io/badge/Grafana-dashboards-yellow) ![Tests](https://img.shields.io/badge/Tests-41%20passing-brightgreen)
 
@@ -15,6 +15,7 @@ This system is built to answer the questions that matter:
 - Is latency coming from the model or the API?
 - Are we silently failing and retrying?
 - Is the model's behavior drifting over time?
+- Are we being alerted **before** users notice a problem?
 
 ---
 
@@ -128,6 +129,88 @@ Each agent exposes metrics on port `9090`:
 
 ---
 
+## Alerting System
+
+A production-grade alerting layer sits on top of Prometheus, firing Grafana alerts when the system crosses critical thresholds. Alerts are scoped to real operational signals — not just infrastructure health, but **AI-specific failure modes** like confidence degradation and LLM latency spikes.
+
+### Alert Categories
+
+#### 🤖 AI / LLM Alerts
+
+| Alert | Severity | Trigger Condition | What It Means |
+|-------|----------|-------------------|---------------|
+| `LowClassificationConfidence` | ⚠️ Warning | Confidence drops below **0.8** | The AI is uncertain — human review needed before acting on the label |
+| `HighLLMLatency` | 🔴 Critical | P95 LLM latency exceeds **5 seconds** for 2 minutes | Model response time has degraded; downstream SLAs are at risk |
+
+#### ☸️ Kubernetes Infrastructure Alerts
+
+| Alert | Severity | Trigger Condition | What It Means |
+|-------|----------|-------------------|---------------|
+| `PodCrashLooping` | ⚠️ Warning | Pod restarts **> 3 times** in 15 minutes | A service is repeatedly failing — likely a config or dependency issue |
+| `KubeDeploymentReplicasMismatch` | ⚠️ Warning | Deployment replica count mismatches desired state for **> 15 minutes** | Kubernetes cannot schedule the expected number of pods |
+| `HighMemoryUsage` | ⚠️ Warning | Memory usage exceeds **500MB** | A pod is approaching its memory limit — risk of OOM termination |
+
+### Live Alert Examples
+
+**LowClassificationConfidence** — fires when the triage agent's confidence falls below the 0.8 threshold, directly linking to the PolicyEngine's confidence guardrail:
+
+```
+Alert:       LowClassificationConfidence
+Severity:    warning
+Summary:     Classification confidence dropped below 0.8
+Description: AI model classification confidence has dropped below acceptable
+             threshold. Current confidence: 0.6.
+Instance:    10.244.2.177:9090
+Pod:         triage-agent-deployment-5b9df7cdf5-hcbch
+```
+
+**HighLLMLatency** — fires when GPT-4o response times spike beyond the 5-second SLO, surfacing model-side degradation before it reaches users:
+
+```
+Alert:       HighLLMLatency
+Severity:    critical
+Summary:     LLM Latency is too high
+Description: P95 latency is 6.25s, which is above the 5s threshold
+             for 2 minutes.
+Instance:    10.244.2.176:9090
+```
+
+**PodCrashLooping** — fires when the 311 ingestor pod enters a crash loop, catching infrastructure instability early:
+
+```
+Alert:       PodCrashLooping
+Severity:    warning
+Summary:     Pod is crash looping
+Description: Pod ingestor-311-deployment-6cb7b85fcc-pnrp7 has restarted more
+             than 3 times in the last 15 minutes.
+Instance:    10.244.2.138:8080
+```
+
+### Triage Agent Log — End-to-End Trace
+
+The triage agent emits structured JSON logs at each pipeline stage, making every classification fully traceable by `trace_id` and `incident_id`:
+
+```
+INFO: Received incident for classification
+INFO: Sending request to LLM
+INFO: Parsing LLM response
+INFO: Final severity after policy enforcement
+INFO: Inserting incident into DB
+INFO: Classification complete
+```
+
+Each log entry carries `{"timestamp", "level", "logger", "message", "module", "func_name", "trace_id", "incident_id"}` — enabling log-based alerting and full request tracing.
+
+### Alert Design Philosophy
+
+The alerting layer is built around two principles:
+
+**1. AI-aware alerts, not just infra alerts** — standard Kubernetes monitoring watches pods and memory. This system adds AI-specific signals (confidence scores, LLM latency) that generic infrastructure tools miss entirely.
+
+**2. Alerts map directly to governance guardrails** — `LowClassificationConfidence` fires at the same 0.8 threshold enforced by the `PolicyEngine`. The alert and the safety rule share a single source of truth.
+
+---
+
 ## Architecture Overview
 
 ```
@@ -158,7 +241,7 @@ SF 311 Public API
      PostgreSQL DB
            │
            ▼
-     Prometheus → Grafana
+     Prometheus → Grafana → Alertmanager
 ```
 
 ---
@@ -196,11 +279,14 @@ incident_reporting/
 │   └── create_secrets.sh.example  # Template — fill in your values
 │
 ├── monitoring/
-│   └── prometheus.yml       # Prometheus scrape config
+│   ├── prometheus.yml       # Prometheus scrape config
+	├──alert_rules.yml		 # Grafana alert rules (LLM + infra)
+│   └──alertmanager.yml              
 │
 ├── screenshots/
 │   ├── kubernetes/          # kubectl get pods, logs screenshots
 │   ├── dashboard/           # UI and governance page screenshots
+│   ├── alerts/              # Grafana alert firing screenshots
 │   └── tests/               # All test result screenshots
 │
 ├── scripts/
@@ -336,7 +422,7 @@ pytest tests/ --cov=triage_agent --cov-report=term-missing
 
 ## Tech Stack
 
-`Python 3.11` · `FastAPI` · `FastMCP` · `OpenAI GPT-4o` · `PostgreSQL` · `Docker` · `Kubernetes` · `Prometheus` · `Grafana` · `AWS S3` · `Tailwind CSS` · `JWT Auth`
+`Python 3.11` · `FastAPI` · `FastMCP` · `OpenAI GPT-4o` · `PostgreSQL` · `Docker` · `Kubernetes` · `Prometheus` · `Grafana` · `Alertmanager` · `AWS S3` · `Tailwind CSS` · `JWT Auth`
 
 ---
 
@@ -354,3 +440,4 @@ pytest tests/ --cov=triage_agent --cov-report=term-missing
 - OpenTelemetry distributed tracing
 - AI-Ops module for automated root cause analysis
 - Accuracy evaluation metrics and human feedback loop integration
+- Slack integration for alert routing
