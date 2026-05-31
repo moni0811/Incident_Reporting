@@ -1,16 +1,28 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
+
 WORKDIR /incident_report
-RUN pip install fastmcp mcp asyncio prometheus-client requests fastapi
 
-FROM debian:13.5
+# Update OS packages to fix libncursesw6/perl-base CVEs
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
 
-# 1. Update OS packages (Fixes the libncursesw6/perl-base issues)
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
-# 2. Ensure pip is updated and dependencies are installed
-RUN pip install --upgrade pip setuptools wheel
+# Upgrade pip and install dependencies
+# python-jose[cryptography] 3.4.0 fixes CVE-2024-33663 and drops ecdsa (fixes CVE-2024-23342)
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir \
+        fastmcp \
+        mcp \
+        prometheus-client \
+        requests \
+        fastapi \
+        uvicorn \
+        "python-jose[cryptography]==3.4.0"
 
 COPY shared/ /incident_report/shared/
 COPY escalation_agent/ /incident_report/
+
 ENV PYTHONPATH=/incident_report
+
 CMD ["python", "server.py"]
