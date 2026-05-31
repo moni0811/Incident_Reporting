@@ -39,6 +39,10 @@ jobs:
   build_and_push:
     needs: unit_test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for Cosign
  
     steps:
     - uses: actions/checkout@v4
@@ -48,36 +52,144 @@ jobs:
       with: 
         username: ${{ vars.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        
-    - name: Build and Push the 311-ingestor Docker image
+    
+    - name: Build 311-ingestor Image
       uses: docker/build-push-action@v6
       with:
         context: ./311_ingestor
-        push: true
         tags: ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
+        load: true # Must load to local docker for scan/sign
 
-    - name: Build and Push the client-api Docker image
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Generate SBOM with Syft
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
+        format: spdx-json
+        output-file: 311-ingestor-sbom.spdx.json
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+    
+    - name: Sign image
+      run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
+    
+    - name: Build Client-Api Image
       uses: docker/build-push-action@v6
       with:
         context: ./client
-        push: true
         tags: ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+        load: true # Must load to local docker for scan/sign
 
-    - name: Build and Push the escalation-agent Docker image
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Generate SBOM with Syft
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+        format: spdx-json
+        output-file: client-api-sbom.spdx.json
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+    
+    - name: Sign image
+      run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+      
+    - name: Build Escalation-Agent Image
       uses: docker/build-push-action@v6
       with:
         context: .
         file: ./escalation_agent/Dockerfile
-        push: true
         tags: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+        load: true # Must load to local docker for scan/sign
 
-    - name: Build and Push the triage-agent Docker image
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Generate SBOM with Syft
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+        format: spdx-json
+        output-file: escalation-agent-sbom.spdx.json
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+    
+    - name: Sign image
+      run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+      
+    - name: Build Triage-Agent Image
       uses: docker/build-push-action@v6
       with:
         context: .
         file: ./triage_agent/Dockerfile
-        push: true
         tags: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+        load: true # Must load to local docker for scan/sign
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'HIGH,CRITICAL'
+
+    - name: Generate SBOM with Syft
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+        format: spdx-json
+        output-file: triage-agent-sbom.spdx.json
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+    
+    - name: Sign image
+      run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
   kind_deploy_and_test:
     needs: build_and_push
