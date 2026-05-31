@@ -1,24 +1,24 @@
 FROM python:3.13-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /incident_report
 
-# Update OS packages to fix libncursesw6/perl-base CVEs
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install dependencies
-# python-jose[cryptography] 3.4.0 fixes CVE-2024-33663 and drops ecdsa (fixes CVE-2024-23342)
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
+        "python-jose[cryptography]>=3.4.0" \
         openai \
         python-dotenv \
         psycopg2-binary \
         prometheus-client \
         fastapi \
-        uvicorn \
-        "python-jose[cryptography]==3.4.0"
+        uvicorn
 
 COPY triage_agent/ /incident_report/
 COPY shared/ /incident_report/shared/
