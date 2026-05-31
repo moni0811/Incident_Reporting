@@ -52,6 +52,9 @@ jobs:
       with: 
         username: ${{ vars.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
     
     - name: Build 311-ingestor Image
       uses: docker/build-push-action@v6
@@ -76,17 +79,14 @@ jobs:
         format: spdx-json
         output-file: 311-ingestor-sbom.spdx.json
 
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
     
     - name: Sign image
       run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
       env:
         COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-
-    - name: Push to Docker Hub
-      run: docker push ${{ vars.DOCKER_USERNAME }}/311-ingestor:${{ github.sha }}
     
     - name: Build Client-Api Image
       uses: docker/build-push-action@v6
@@ -111,17 +111,14 @@ jobs:
         format: spdx-json
         output-file: client-api-sbom.spdx.json
 
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3
-    
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
+
     - name: Sign image
       run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
       env:
         COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-
-    - name: Push to Docker Hub
-      run: docker push ${{ vars.DOCKER_USERNAME }}/client-api:${{ github.sha }}
       
     - name: Build Escalation-Agent Image
       uses: docker/build-push-action@v6
@@ -147,17 +144,14 @@ jobs:
         format: spdx-json
         output-file: escalation-agent-sbom.spdx.json
 
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3
-    
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
+
     - name: Sign image
       run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
       env:
         COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-
-    - name: Push to Docker Hub
-      run: docker push ${{ vars.DOCKER_USERNAME }}/escalation-agent:${{ github.sha }}
       
     - name: Build Triage-Agent Image
       uses: docker/build-push-action@v6
@@ -183,8 +177,8 @@ jobs:
         format: spdx-json
         output-file: triage-agent-sbom.spdx.json
 
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3
+    - name: Push to Docker Hub
+      run: docker push ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
     - name: Sign image
       run: cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
@@ -192,8 +186,6 @@ jobs:
         COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
 
-    - name: Push to Docker Hub
-      run: docker push ${{ vars.DOCKER_USERNAME }}/triage-agent:${{ github.sha }}
     
   kind_deploy_and_test:
     needs: build_and_push
