@@ -1,5 +1,5 @@
 # Use the slim version for a smaller attack surface
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Set environment variables to keep the container clean
 ENV PYTHONDONTWRITEBYTECODE=1
