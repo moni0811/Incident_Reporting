@@ -1,0 +1,17 @@
+# No fix available - ncurses buffer overflow
+CVE-2025-69720
+
+# No fix available - perl-base Archive::Tar symlinks
+CVE-2026-42496
+
+# No fix available - perl heap buffer overflow
+CVE-2026-8376
+
+# No fix available - perl Archive::Tar hardlinks
+CVE-2026-42497
+
+# No fix available - perl-IO-Compress arbitrary code execution
+CVE-2026-48962
+
+# No fix available - perl Archive::Tar memory exhaustion
+CVE-2026-9538
