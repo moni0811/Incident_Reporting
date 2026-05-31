@@ -87,34 +87,34 @@ def get_311_data_and_process():
                 else:
                     image_url = media_data
                 print('image_url:', image_url)
-                if image_url:
-                    local_image=f"{incident_id}.jpg"
-                    with requests.get(image_url, stream=True) as r:
-                        r.raise_for_status()
-                        with open(local_image,'wb') as file_image:
-                            for i in r.iter_content(chunk_size=8192):
-                                file_image.write(i)
-                    print('Image downloaded')
-                    import boto3
-                    bucket_name="s3-incident-report-bucket"
-                    s3_client=boto3.client("s3",
-                                            aws_access_key_id=secrets["AWS_ACCESS_KEY_ID"],
-                                            aws_secret_access_key=secrets["AWS_SECRET_ACCESS_KEY"])
-                    s3_client.upload_file(
-                        Filename=local_image,  # Path to the file on your computer
-                        Bucket=bucket_name, 
-                        Key=local_image,       # Name it will have in S3
-                        ExtraArgs={
-                            'ContentType': 'image/jpeg' 
-                        },
-                    )
-                    s3_url=f"https://{bucket_name}.s3.amazonaws.com/{local_image}"
-                    print('Image s3_url:', s3_url)
+                # if image_url:
+                #     local_image=f"{incident_id}.jpg"
+                #     with requests.get(image_url, stream=True) as r:
+                #         r.raise_for_status()
+                #         with open(local_image,'wb') as file_image:
+                #             for i in r.iter_content(chunk_size=8192):
+                #                 file_image.write(i)
+                #     print('Image downloaded')
+                #     import boto3
+                #     bucket_name="s3-incident-report-bucket"
+                #     s3_client=boto3.client("s3",
+                #                             aws_access_key_id=secrets["AWS_ACCESS_KEY_ID"],
+                #                             aws_secret_access_key=secrets["AWS_SECRET_ACCESS_KEY"])
+                #     s3_client.upload_file(
+                #         Filename=local_image,  # Path to the file on your computer
+                #         Bucket=bucket_name, 
+                #         Key=local_image,       # Name it will have in S3
+                #         ExtraArgs={
+                #             'ContentType': 'image/jpeg' 
+                #         },
+                #     )
+                #     s3_url=f"https://{bucket_name}.s3.amazonaws.com/{local_image}"
+                #     print('Image s3_url:', s3_url)
                 json_data = {
                     "incident_id": incident_id,
                     "description": description,
                     "address": address,
-                    "image_url": s3_url if image_url else None
+                    "image_url": image_url if image_url else None
                 }
             print('json_data:',json_data)
             result=requests.post(CLIENT_URL,json=json_data)
