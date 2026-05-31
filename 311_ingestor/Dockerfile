@@ -17,7 +17,6 @@ WORKDIR /incident_report
 # We install these BEFORE copying the rest of the code to leverage Docker layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir requests boto3 psycopg2-binary
 
 # Copy the rest of the application code
