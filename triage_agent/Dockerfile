@@ -13,6 +13,7 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
         "python-jose[cryptography]>=3.4.0" \
+        fastmcp \
         openai \
         python-dotenv \
         psycopg2-binary \
